@@ -43,8 +43,8 @@
         .grade-input { -moz-appearance: textfield; }
 
         /* Animaciones */
-        .fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Estilos específicos para SweetAlert en modo oscuro */
         .dark .swal2-popup { background: #1e293b; color: #f8fafc; }
@@ -102,22 +102,36 @@
                     <span>Foto</span>
                 </button>
 
-                <!-- Perfil / Logout -->
-                <div class="relative group">
-                    <button id="user-avatar-btn" class="w-9 h-9 rounded-full bg-indigo-400 border-2 border-indigo-300 overflow-hidden focus:outline-none">
+                <!-- Perfil / Logout (MODIFICADO) -->
+                <!-- Se eliminó la clase 'group' para quitar el hover automático y se añadió la lógica de clic -->
+                <div class="relative">
+                    <button id="user-avatar-btn" onclick="toggleProfileMenu(event)" class="w-9 h-9 rounded-full bg-indigo-400 border-2 border-indigo-300 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-indigo-600 focus:ring-white transition-all cursor-pointer hover:scale-105 active:scale-95">
                         <!-- La imagen se carga via JS -->
                         <img id="user-avatar" src="" alt="User" class="w-full h-full object-cover hidden">
-                        <span id="user-initial" class="w-full h-full flex items-center justify-center font-bold text-sm">?</span>
+                        <span id="user-initial" class="w-full h-full flex items-center justify-center font-bold text-sm select-none">?</span>
                     </button>
-                    <!-- Dropdown -->
-                    <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-card rounded-xl shadow-xl border border-slate-100 dark:border-dark-border py-1 hidden group-hover:block fade-in">
-                        <div class="px-4 py-2 border-b border-slate-100 dark:border-dark-border">
-                            <p class="text-xs text-slate-400">Sesión iniciada como</p>
-                            <p id="user-name-display" class="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">Usuario</p>
+                    
+                    <!-- Dropdown Menu (Mejorado Visualmente y Funcionalmente) -->
+                    <!-- Inicia oculto (hidden) y se alterna con JS -->
+                    <div id="user-menu-dropdown" class="absolute right-0 mt-3 w-64 bg-white dark:bg-dark-card rounded-xl shadow-2xl border border-slate-100 dark:border-dark-border hidden transform origin-top-right transition-all z-50">
+                        <!-- Flecha decorativa -->
+                        <div class="absolute -top-2 right-3 w-4 h-4 bg-white dark:bg-dark-card transform rotate-45 border-l border-t border-slate-100 dark:border-dark-border"></div>
+                        
+                        <div class="relative z-10">
+                            <!-- Apartado donde aparece el usuario -->
+                            <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 rounded-t-xl">
+                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Sesión iniciada como</p>
+                                <p id="user-name-display" class="text-sm font-bold text-slate-800 dark:text-slate-100 truncate" title="Usuario">Usuario</p>
+                            </div>
+                            
+                            <!-- Opción de cerrar sesión -->
+                            <div class="p-2">
+                                <button onclick="logout()" class="w-full text-left px-4 py-3 text-sm font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 rounded-lg flex items-center gap-3 transition-colors">
+                                    <i data-lucide="log-out" class="w-4 h-4"></i> 
+                                    Cerrar Sesión
+                                </button>
+                            </div>
                         </div>
-                        <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center gap-2">
-                            <i data-lucide="log-out" class="w-4 h-4"></i> Cerrar Sesión
-                        </button>
                     </div>
                 </div>
             </div>
@@ -125,9 +139,10 @@
     </header>
 
     <!-- CONTENIDO PRINCIPAL -->
-    <main class="max-w-5xl mx-auto px-4 py-8 flex-1 w-full">
+    <!-- Agregado onclick para cerrar el menú si se hace clic fuera -->
+    <main class="max-w-5xl mx-auto px-4 py-8 flex-1 w-full" onclick="closeProfileMenu()">
 
-        <!-- Barra de Promedio Semestral (Estilo Tarjeta Grande) -->
+        <!-- Barra de Promedio Semestral -->
         <div id="capture-area-header" class="bg-white dark:bg-dark-card rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-dark-border mb-8 flex flex-col md:flex-row items-center justify-between gap-6 transition-colors duration-300">
             <div>
                 <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-1">Resumen General</h2>
@@ -244,7 +259,6 @@
                 let errorMsg = 'Revisa tu configuración de Firebase.';
                 let errorTitle = 'Error de acceso';
 
-                // Detectar error por ejecutar en archivo local (file://)
                 if (error.code === 'auth/operation-not-supported-in-this-environment' || window.location.protocol === 'file:') {
                     errorTitle = 'Entorno no seguro';
                     errorMsg = 'Google no permite iniciar sesión desde un archivo local (file://). <br><br><b>Solución:</b> Usa "Live Server" en VS Code o pulsa "Continuar como Invitado".';
@@ -262,7 +276,6 @@
             }
         };
 
-        // Nueva función para respaldo
         window.loginGuest = async () => {
              try {
                 await signInAnonymously(auth);
@@ -272,18 +285,85 @@
             }
         };
 
+        // --- NUEVA LÓGICA DE MENÚ Y LOGOUT (SOLICITADA) ---
+        
+        // Alternar visibilidad del menú
+        window.toggleProfileMenu = (e) => {
+            e.stopPropagation(); // Evita que el evento suba y cierre el menú inmediatamente
+            const menu = document.getElementById('user-menu-dropdown');
+            
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                menu.classList.add('fade-in');
+            } else {
+                menu.classList.add('hidden');
+                menu.classList.remove('fade-in');
+            }
+        };
+
+        // Cerrar menú explícitamente (usado al hacer clic fuera)
+        window.closeProfileMenu = () => {
+            const menu = document.getElementById('user-menu-dropdown');
+            if (!menu.classList.contains('hidden')) {
+                menu.classList.add('hidden');
+                menu.classList.remove('fade-in');
+            }
+        };
+
+        // Detector global de clics para cerrar el menú si se hace clic fuera del botón o del menú
+        document.addEventListener('click', (e) => {
+             const menu = document.getElementById('user-menu-dropdown');
+             const btn = document.getElementById('user-avatar-btn');
+             // Si el clic NO fue en el botón Y NO fue dentro del menú
+             if (!btn.contains(e.target) && !menu.contains(e.target)) {
+                 window.closeProfileMenu();
+             }
+        });
+
+        // Función de Logout Mejorada con Confirmación
         window.logout = () => {
-            signOut(auth).then(() => {
-                subjectsData = [];
-                renderApp();
+            window.closeProfileMenu(); // Primero cerramos el menú visualmente
+            
+            Swal.fire({
+                title: '¿Cerrar sesión?',
+                text: "¿Estás seguro de que quieres salir?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444', // Rojo para acción destructiva
+                cancelButtonColor: '#94a3b8', // Gris para cancelar
+                confirmButtonText: 'Sí, cerrar sesión',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    signOut(auth).then(() => {
+                        subjectsData = [];
+                        renderApp();
+                        
+                        // Feedback rápido
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
+                        Toast.fire({
+                            icon: 'success',
+                            title: 'Has cerrado sesión'
+                        });
+                    });
+                }
             });
         };
 
+        // Listener de Autenticación
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 loginScreen.classList.add('hidden');
                 
+                // Actualizar interfaz según el usuario
                 if (user.isAnonymous) {
                     userInitial.innerText = "I";
                     userAvatar.classList.add('hidden');
@@ -305,10 +385,11 @@
             } else {
                 currentUser = null;
                 loginScreen.classList.remove('hidden');
+                window.closeProfileMenu();
             }
         });
 
-        // --- DATA & LOGIC ---
+        // --- DATA & LOGIC (Sin cambios mayores, solo lo necesario para el funcionamiento) ---
         function subscribeToData() {
             if (!currentUser) return;
             const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'grade_data', 'semester_pro_v1');
@@ -325,9 +406,6 @@
                 renderApp();
             }, (error) => {
                 console.error("Firestore Error:", error);
-                if (error.code === 'permission-denied') {
-                     Swal.fire({ icon: 'error', title: 'Permiso denegado', text: 'Revisa las Reglas de Seguridad en Firebase Firestore.' });
-                }
             });
         }
 
